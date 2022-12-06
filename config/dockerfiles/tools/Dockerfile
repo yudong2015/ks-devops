@@ -19,8 +19,8 @@ RUN CGO_ENABLED=0 GO111MODULE=on go build -a -o jwt cmd/tools/jwt/jwt_cmd.go
 
 FROM golang:1.17 as tool-builder
 ARG GOPROXY
-ARG CACHEBUST=1
-RUN git clone -b bugfix-gc-pipeline https://github.com/yudong2015/ks.git
+ARG CACHEBUST
+RUN echo ${CACHEBUST} && git clone -b bugfix-gc-pipeline https://github.com/yudong2015/ks.git
 RUN cd ks && CGO_ENABLED=0 GO111MODULE=on go build -o /usr/local/bin/ks
 
 # Use distroless as minimal base image to package the manager binary
