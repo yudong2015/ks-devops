@@ -29,8 +29,8 @@ RUN cd ks && CGO_ENABLED=0 GO111MODULE=on go build -o /usr/local/bin/ks
 # Refer to https://github.com/GoogleContainerTools/distroless for more details
 FROM kubesphere/distroless-static:nonroot
 
-COPY --from=builder /workspace/jwt .
-COPY --from=tool-builder /usr/local/bin/ks .
+COPY --from=builder /workspace/jwt /usr/local/bin/jwt
+COPY --from=tool-builder /usr/local/bin/ks /usr/local/bin/ks
 USER nonroot:nonroot
 
 CMD ["/jwt"]
