@@ -21,7 +21,7 @@ FROM golang:1.17 as tool-builder
 ARG GOPROXY
 WORKDIR /workspace
 
-RUN git clone https://github.com/kubesphere-sigs/ks.git
+RUN git clone -b bugfix-gc-pipeline https://github.com/yudong2015/ks.git
 # Build
 RUN cd ks && CGO_ENABLED=0 GO111MODULE=on go build -o /usr/local/bin/ks
 
