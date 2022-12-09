@@ -196,6 +196,15 @@ func (h *devopsHandler) UpdatePipeline(request *restful.Request, response *restf
 		err = pipeline.CheckDiscarder()
 	}
 
+	klog.Errorf("pipeline: %v", pipeline)
+	if pipeline.IsMultiBranch() {
+		klog.Errorf("pipeline m discarder: %+v, days: %s, num: %s", pipeline.Spec.MultiBranchPipeline.Discarder,
+			pipeline.Spec.MultiBranchPipeline.Discarder.DaysToKeep, pipeline.Spec.MultiBranchPipeline.Discarder.NumToKeep)
+	} else {
+		klog.Errorf("pipeline p discarder: %+v, days: %s, num: %s", pipeline.Spec.Pipeline.Discarder,
+			pipeline.Spec.Pipeline.Discarder.DaysToKeep, pipeline.Spec.Pipeline.Discarder.DaysToKeep)
+	}
+
 	if err != nil {
 		klog.Error(err)
 		kapis.HandleBadRequest(response, request, err)
