@@ -17,7 +17,9 @@ limitations under the License.
 package v1alpha3
 
 import (
+	"fmt"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"strconv"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -41,6 +43,8 @@ const (
 	// PipelineRequestToSyncRunsAnnoKey is the annotation key of requesting to synchronize PipelineRun after a dedicated time.
 	PipelineRequestToSyncRunsAnnoKey = PipelinePrefix + "request-to-sync-pipelineruns"
 )
+
+var DiscarderNumberError = fmt.Errorf("the days_to_keep and num_to_keep must be number and greater than 0")
 
 // PipelineSpec defines the desired state of Pipeline
 type PipelineSpec struct {
@@ -88,6 +92,29 @@ func (p *Pipeline) IsMultiBranch() bool {
 		return false
 	}
 	return p.Spec.Type == MultiBranchPipelineType
+}
+
+func (p *Pipeline) CheckDiscarder() error {
+	var dayStr, numStr string
+	if p.IsMultiBranch() {
+		dayStr = p.Spec.MultiBranchPipeline.Discarder.DaysToKeep
+		numStr = p.Spec.MultiBranchPipeline.Discarder.NumToKeep
+	} else {
+		dayStr = p.Spec.Pipeline.Discarder.DaysToKeep
+		numStr = p.Spec.Pipeline.Discarder.NumToKeep
+	}
+	day, err := strconv.Atoi(dayStr)
+	if err != nil {
+		return DiscarderNumberError
+	}
+	num, err := strconv.Atoi(numStr)
+	if err != nil {
+		return DiscarderNumberError
+	}
+	if day < 1 || num < 1 {
+		return DiscarderNumberError
+	}
+	return nil
 }
 
 const (

@@ -169,6 +169,9 @@ func (h *devopsHandler) CreatePipeline(request *restful.Request, response *restf
 	devops := request.PathParameter("devops")
 	var pipeline v1alpha3.Pipeline
 	err := request.ReadEntity(&pipeline)
+	if err == nil {
+		err = pipeline.CheckDiscarder()
+	}
 
 	if err != nil {
 		klog.Error(err)
@@ -189,6 +192,9 @@ func (h *devopsHandler) UpdatePipeline(request *restful.Request, response *restf
 
 	var pipeline v1alpha3.Pipeline
 	err := request.ReadEntity(&pipeline)
+	if err == nil {
+		err = pipeline.CheckDiscarder()
+	}
 
 	if err != nil {
 		klog.Error(err)
