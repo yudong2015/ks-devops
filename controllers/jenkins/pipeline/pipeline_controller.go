@@ -262,6 +262,7 @@ func (c *Controller) syncHandler(key string) error {
 		jenkinsPipeline, err := c.devopsClient.GetProjectPipelineConfig(nsName, pipeline.Name)
 		if err == nil {
 			if !reflect.DeepEqual(jenkinsPipeline.Spec, copyPipeline.Spec) {
+				klog.V(8).Infof("#### update pipeline: %s/%s ..", copyPipeline.GetNamespace(), copyPipeline.GetName())
 				_, err := c.devopsClient.UpdateProjectPipeline(nsName, copyPipeline)
 				if err != nil {
 					klog.V(8).Info(err, fmt.Sprintf("failed to update pipeline config %s ", key))
