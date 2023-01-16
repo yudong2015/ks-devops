@@ -31,6 +31,36 @@ import (
 	"kubesphere.io/devops/pkg/client/devops/jenkins/internal"
 )
 
+const (
+	StringNull = ""
+
+	FlowTag                 = "flow-definition"
+	PropertiesTag           = "properties"
+	DisableConcurrentJobTag = "org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty"
+	BuildDiscarderTag       = "jenkins.model.BuildDiscarderProperty"
+	StrategyTag             = "strategy"
+	DaysToKeepTag           = "daysToKeep"
+	NumToKeepTag            = "numToKeep"
+	ArtiDaysToKeepTag       = "artifactDaysToKeep"
+	ArtiNumToKeepTag        = "artifactNumToKeep"
+
+	ParamDefiPropTag = "hudson.model.ParametersDefinitionProperty"
+	ParamDefiTag     = "parameterDefinitions"
+
+	PipelineTriggersJobTag = "org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty"
+	TriggersTag            = "triggers"
+	TimerTriggerTag        = "hudson.triggers.TimerTrigger"
+	GenericTriggerTag      = "org.jenkinsci.plugins.gwt.GenericTrigger"
+
+	DefinitionTag = "definition"
+	ClassKey      = "class"
+	PluginKey     = "plugin"
+	ScriptTag     = "script"
+	SandboxTag    = "sandbox"
+	AuthTokenTag  = "authToken"
+	DisabledTag   = "disabled"
+)
+
 func replaceXmlVersion(config, oldVersion, targetVersion string) string {
 	lines := strings.Split(config, "\n")
 	lines[0] = strings.Replace(lines[0], oldVersion, targetVersion, -1)
@@ -72,7 +102,7 @@ func createPipelineConfigXml(pipeline *devopsv1alpha3.NoScmPipeline) (string, er
 		strategy.CreateElement("artifactNumToKeep").SetText("-1")
 	}
 	if pipeline.Parameters != nil {
-		appendParametersToEtree(properties, pipeline.Parameters)
+		replaceParametersInEtree(properties, pipeline.Parameters)
 	}
 
 	// create trigger xml structure
@@ -109,6 +139,101 @@ func createPipelineConfigXml(pipeline *devopsv1alpha3.NoScmPipeline) (string, er
 		return "", err
 	}
 	return replaceXmlVersion(stringXml, "1.0", "1.1"), err
+}
+
+func updatePipelineConfigXml(config string, pipeline *devopsv1alpha3.NoScmPipeline) (string, error) {
+	config = replaceXmlVersion(config, "1.1", "1.0")
+	doc := etree.NewDocument()
+	err := doc.ReadFromString(config)
+	if err != nil {
+		return "", err
+	}
+	flow := doc.SelectElement(FlowTag)
+	// ------------------------------------------------
+	// update properties
+	properties := flow.SelectElement(PropertiesTag)
+	if pipeline.DisableConcurrent {
+		addOrUpdateElement(properties, DisableConcurrentJobTag, StringNull)
+	}
+
+	if pipeline.Discarder != nil {
+		var discarder, strategy *etree.Element
+		discarder = addOrUpdateElement(properties, BuildDiscarderTag, StringNull)
+		strategy = addOrUpdateElement(discarder, StrategyTag, StringNull)
+
+		replaceAttr(strategy, ClassKey, "hudson.tasks.LogRotator")
+		addOrUpdateElement(strategy, DaysToKeepTag, pipeline.Discarder.DaysToKeep)
+		addOrUpdateElement(strategy, NumToKeepTag, pipeline.Discarder.NumToKeep)
+		addOrUpdateElement(strategy, ArtiDaysToKeepTag, "-1")
+		addOrUpdateElement(strategy, ArtiNumToKeepTag, "-1")
+	}
+
+	if pipeline.Parameters != nil { // overwrite parameters
+		replaceParametersInEtree(properties, pipeline.Parameters)
+	}
+
+	// create trigger xml structure
+	if pipeline.TimerTrigger != nil || pipeline.GenericWebhook != nil {
+		pipelineTriggerE := addOrUpdateElement(properties, PipelineTriggersJobTag, StringNull)
+		triggersEle := addOrUpdateElement(pipelineTriggerE, TriggersTag, StringNull)
+
+		if pipeline.TimerTrigger != nil {
+			timeTriggerE := addOrUpdateElement(triggersEle, TimerTriggerTag, StringNull)
+			addOrUpdateElement(timeTriggerE, "spec", pipeline.TimerTrigger.Cron)
+		}
+
+		if e := triggersEle.SelectElement(GenericTriggerTag); e != nil {
+			triggersEle.RemoveChild(e)
+		}
+		triggers.CreateGenericWebhookXML(triggersEle, pipeline.GenericWebhook)
+	}
+
+	// ------------------------------------------------
+	// update definition
+	pipelineDefine := flow.FindElement(DefinitionTag)
+	if pipelineDefine != nil {
+		flow.RemoveChild(pipelineDefine)
+	}
+	pipelineDefine = flow.CreateElement(DefinitionTag)
+	pipelineDefine.CreateAttr(ClassKey, "org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition")
+	pipelineDefine.CreateAttr(PluginKey, "workflow-cps")
+	pipelineDefine.CreateElement(ScriptTag).SetText(pipeline.Jenkinsfile)
+	pipelineDefine.CreateElement(SandboxTag).SetText("true")
+
+	// ------------------------------------------------
+	// update others
+	if flow.FindElement(TriggersTag) == nil {
+		flow.CreateElement(TriggersTag)
+	}
+	if pipeline.RemoteTrigger != nil {
+		addOrUpdateElement(flow, AuthTokenTag, pipeline.RemoteTrigger.Token)
+	}
+	addOrUpdateElement(flow, DisabledTag, "false")
+
+	// format xml string
+	doc.Indent(2)
+	stringXml, err := doc.WriteToString()
+	if err != nil {
+		return "", err
+	}
+	return replaceXmlVersion(stringXml, "1.0", "1.1"), err
+}
+
+func addOrUpdateElement(parent *etree.Element, tag, text string) *etree.Element {
+	var e *etree.Element
+	if e = parent.SelectElement(tag); e == nil {
+		e = parent.CreateElement(tag)
+	}
+	if text != "" {
+		e.SetText(text)
+	}
+	return e
+}
+
+func replaceAttr(e *etree.Element, key, value string) *etree.Element {
+	e.RemoveAttr(key)
+	e.CreateAttr(key, value)
+	return e
 }
 
 func parsePipelineConfigXml(config string) (*devopsv1alpha3.NoScmPipeline, error) {
@@ -177,13 +302,21 @@ func parsePipelineConfigXml(config string) (*devopsv1alpha3.NoScmPipeline, error
 	return pipeline, nil
 }
 
-func appendParametersToEtree(properties *etree.Element, parameters []devopsv1alpha3.ParameterDefinition) {
-	parameterDefinitions := properties.CreateElement("hudson.model.ParametersDefinitionProperty").
-		CreateElement("parameterDefinitions")
+func replaceParametersInEtree(properties *etree.Element, parameters []devopsv1alpha3.ParameterDefinition) {
+	var paramDefiPropsE, paramDefiE *etree.Element
+	if paramDefiPropsE = properties.FindElement(ParamDefiPropTag); paramDefiPropsE == nil {
+		paramDefiE = properties.CreateElement(ParamDefiPropTag).CreateElement(ParamDefiTag)
+	} else {
+		if paramDefiE = paramDefiPropsE.FindElement(ParamDefiTag); paramDefiE != nil {
+			paramDefiPropsE.RemoveChild(paramDefiE)
+		}
+		paramDefiE = paramDefiPropsE.CreateElement(ParamDefiTag)
+	}
+
 	for _, parameter := range parameters {
 		for className, typeName := range ParameterTypeMap {
 			if typeName == parameter.Type {
-				paramDefine := parameterDefinitions.CreateElement(className)
+				paramDefine := paramDefiE.CreateElement(className)
 				paramDefine.CreateElement("name").SetText(parameter.Name)
 				paramDefine.CreateElement("description").SetText(parameter.Description)
 				switch parameter.Type {
