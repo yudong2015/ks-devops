@@ -31,36 +31,6 @@ import (
 	"kubesphere.io/devops/pkg/client/devops/jenkins/internal"
 )
 
-const (
-	StringNull = ""
-
-	FlowTag                 = "flow-definition"
-	PropertiesTag           = "properties"
-	DisableConcurrentJobTag = "org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty"
-	BuildDiscarderTag       = "jenkins.model.BuildDiscarderProperty"
-	StrategyTag             = "strategy"
-	DaysToKeepTag           = "daysToKeep"
-	NumToKeepTag            = "numToKeep"
-	ArtiDaysToKeepTag       = "artifactDaysToKeep"
-	ArtiNumToKeepTag        = "artifactNumToKeep"
-
-	ParamDefiPropTag = "hudson.model.ParametersDefinitionProperty"
-	ParamDefiTag     = "parameterDefinitions"
-
-	PipelineTriggersJobTag = "org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty"
-	TriggersTag            = "triggers"
-	TimerTriggerTag        = "hudson.triggers.TimerTrigger"
-	GenericTriggerTag      = "org.jenkinsci.plugins.gwt.GenericTrigger"
-
-	DefinitionTag = "definition"
-	ClassKey      = "class"
-	PluginKey     = "plugin"
-	ScriptTag     = "script"
-	SandboxTag    = "sandbox"
-	AuthTokenTag  = "authToken"
-	DisabledTag   = "disabled"
-)
-
 func replaceXmlVersion(config, oldVersion, targetVersion string) string {
 	lines := strings.Split(config, "\n")
 	lines[0] = strings.Replace(lines[0], oldVersion, targetVersion, -1)
@@ -154,6 +124,8 @@ func updatePipelineConfigXml(config string, pipeline *devopsv1alpha3.NoScmPipeli
 	properties := flow.SelectElement(PropertiesTag)
 	if pipeline.DisableConcurrent {
 		addOrUpdateElement(properties, DisableConcurrentJobTag, StringNull)
+	} else {
+		removeChildElement(properties, DisableConcurrentJobTag)
 	}
 
 	if pipeline.Discarder != nil {
@@ -170,6 +142,8 @@ func updatePipelineConfigXml(config string, pipeline *devopsv1alpha3.NoScmPipeli
 
 	if pipeline.Parameters != nil { // overwrite parameters
 		replaceParametersInEtree(properties, pipeline.Parameters)
+	} else {
+		removeChildElement(properties, ParamDefiPropTag)
 	}
 
 	// create trigger xml structure
@@ -180,21 +154,18 @@ func updatePipelineConfigXml(config string, pipeline *devopsv1alpha3.NoScmPipeli
 		if pipeline.TimerTrigger != nil {
 			timeTriggerE := addOrUpdateElement(triggersEle, TimerTriggerTag, StringNull)
 			addOrUpdateElement(timeTriggerE, "spec", pipeline.TimerTrigger.Cron)
+		} else {
+			removeChildElement(triggersEle, TimerTriggerTag)
 		}
 
-		if e := triggersEle.SelectElement(GenericTriggerTag); e != nil {
-			triggersEle.RemoveChild(e)
-		}
+		// issue: if support GenericWebhook in console, need to delete GenericWebhook tag when pipeline.GenericWebhook is nil;
 		triggers.CreateGenericWebhookXML(triggersEle, pipeline.GenericWebhook)
 	}
 
 	// ------------------------------------------------
-	// update definition
-	pipelineDefine := flow.FindElement(DefinitionTag)
-	if pipelineDefine != nil {
-		flow.RemoveChild(pipelineDefine)
-	}
-	pipelineDefine = flow.CreateElement(DefinitionTag)
+	// replace definition(all fields could update from console)
+	removeChildElement(flow, DefinitionTag)
+	pipelineDefine := flow.CreateElement(DefinitionTag)
 	pipelineDefine.CreateAttr(ClassKey, "org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition")
 	pipelineDefine.CreateAttr(PluginKey, "workflow-cps")
 	pipelineDefine.CreateElement(ScriptTag).SetText(pipeline.Jenkinsfile)
@@ -202,9 +173,10 @@ func updatePipelineConfigXml(config string, pipeline *devopsv1alpha3.NoScmPipeli
 
 	// ------------------------------------------------
 	// update others
-	if flow.FindElement(TriggersTag) == nil {
+	if flow.SelectElement(TriggersTag) == nil {
 		flow.CreateElement(TriggersTag)
 	}
+	// issue: if support RemoteTrigger in console, need to delete GenericWebhook tag when pipeline.GenericWebhook is nil;
 	if pipeline.RemoteTrigger != nil {
 		addOrUpdateElement(flow, AuthTokenTag, pipeline.RemoteTrigger.Token)
 	}
@@ -217,23 +189,6 @@ func updatePipelineConfigXml(config string, pipeline *devopsv1alpha3.NoScmPipeli
 		return "", err
 	}
 	return replaceXmlVersion(stringXml, "1.0", "1.1"), err
-}
-
-func addOrUpdateElement(parent *etree.Element, tag, text string) *etree.Element {
-	var e *etree.Element
-	if e = parent.SelectElement(tag); e == nil {
-		e = parent.CreateElement(tag)
-	}
-	if text != "" {
-		e.SetText(text)
-	}
-	return e
-}
-
-func replaceAttr(e *etree.Element, key, value string) *etree.Element {
-	e.RemoveAttr(key)
-	e.CreateAttr(key, value)
-	return e
 }
 
 func parsePipelineConfigXml(config string) (*devopsv1alpha3.NoScmPipeline, error) {
@@ -304,10 +259,10 @@ func parsePipelineConfigXml(config string) (*devopsv1alpha3.NoScmPipeline, error
 
 func replaceParametersInEtree(properties *etree.Element, parameters []devopsv1alpha3.ParameterDefinition) {
 	var paramDefiPropsE, paramDefiE *etree.Element
-	if paramDefiPropsE = properties.FindElement(ParamDefiPropTag); paramDefiPropsE == nil {
+	if paramDefiPropsE = properties.SelectElement(ParamDefiPropTag); paramDefiPropsE == nil {
 		paramDefiE = properties.CreateElement(ParamDefiPropTag).CreateElement(ParamDefiTag)
 	} else {
-		if paramDefiE = paramDefiPropsE.FindElement(ParamDefiTag); paramDefiE != nil {
+		if paramDefiE = paramDefiPropsE.SelectElement(ParamDefiTag); paramDefiE != nil {
 			paramDefiPropsE.RemoveChild(paramDefiE)
 		}
 		paramDefiE = paramDefiPropsE.CreateElement(ParamDefiTag)
@@ -642,4 +597,28 @@ func toCrontab(millis int64) string {
 	}
 	return "H H * * *"
 
+}
+
+func addOrUpdateElement(parent *etree.Element, tag, text string) *etree.Element {
+	var e *etree.Element
+	if e = parent.SelectElement(tag); e == nil {
+		e = parent.CreateElement(tag)
+	}
+	if text != "" {
+		e.SetText(text)
+	}
+	return e
+}
+
+func replaceAttr(e *etree.Element, key, value string) *etree.Element {
+	e.RemoveAttr(key)
+	e.CreateAttr(key, value)
+	return e
+}
+
+func removeChildElement(parent *etree.Element, childTag string) *etree.Element {
+	if e := parent.SelectElement(childTag); e != nil {
+		parent.RemoveChild(e)
+	}
+	return parent
 }
