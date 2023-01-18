@@ -109,6 +109,7 @@ func (j *Jenkins) UpdateProjectPipeline(projectId string, pipeline *devopsv1alph
 			klog.Errorf("%+v", err)
 			return "", restful.NewError(http.StatusInternalServerError, err.Error())
 		}
+		klog.Errorf("#### updated config: %+v", updatedConfig)
 
 		err = job.UpdateConfig(updatedConfig)
 		if err != nil {
