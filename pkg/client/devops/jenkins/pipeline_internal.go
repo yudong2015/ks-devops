@@ -148,18 +148,17 @@ func updatePipelineConfigXml(config string, pipeline *devopsv1alpha3.NoScmPipeli
 
 	// update triggers xml structure
 	var pipelineTriggerEle, triggersEle *etree.Element
-	if pipeline.TimerTrigger != nil {
-		pipelineTriggerEle = addOrUpdateElement(properties, PipelineTriggersJobTag, StringNull)
-		triggersEle = addOrUpdateElement(pipelineTriggerEle, TriggersTag, StringNull)
+	pipelineTriggerEle = addOrUpdateElement(properties, PipelineTriggersJobTag, StringNull)
+	triggersEle = addOrUpdateElement(pipelineTriggerEle, TriggersTag, StringNull)
 
-		timeTriggerE := addOrUpdateElement(triggersEle, TimerTriggerTag, StringNull)
-		addOrUpdateElement(timeTriggerE, "spec", pipeline.TimerTrigger.Cron)
+	if pipeline.TimerTrigger != nil {
+		timerTriggerEle := addOrUpdateElement(triggersEle, TimerTriggerTag, StringNull)
+		addOrUpdateElement(timerTriggerEle, "spec", pipeline.TimerTrigger.Cron)
 	} else {
 		removeChildElement(triggersEle, TimerTriggerTag)
 	}
+
 	if pipeline.GenericWebhook != nil {
-		pipelineTriggerEle = addOrUpdateElement(properties, PipelineTriggersJobTag, StringNull)
-		triggersEle = addOrUpdateElement(pipelineTriggerEle, TriggersTag, StringNull)
 		// TODO issue: if support GenericWebhook in console, need to delete GenericWebhook tag when pipeline.GenericWebhook is nil;
 		triggers.CreateGenericWebhookXML(triggersEle, pipeline.GenericWebhook)
 	}
