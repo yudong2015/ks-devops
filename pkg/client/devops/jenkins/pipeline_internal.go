@@ -146,11 +146,12 @@ func updatePipelineConfigXml(config string, pipeline *devopsv1alpha3.NoScmPipeli
 		removeChildElement(properties, ParamDefiPropTag)
 	}
 
-	// create trigger xml structure
+	// update triggers xml structure
 	var pipelineTriggerEle, triggersEle *etree.Element
 	if pipeline.TimerTrigger != nil {
 		pipelineTriggerEle = addOrUpdateElement(properties, PipelineTriggersJobTag, StringNull)
 		triggersEle = addOrUpdateElement(pipelineTriggerEle, TriggersTag, StringNull)
+
 		timeTriggerE := addOrUpdateElement(triggersEle, TimerTriggerTag, StringNull)
 		addOrUpdateElement(timeTriggerE, "spec", pipeline.TimerTrigger.Cron)
 	} else {
