@@ -102,6 +102,8 @@ func (j *Jenkins) UpdateProjectPipeline(projectId string, pipeline *devopsv1alph
 			return "", restful.NewError(devops.GetDevOpsStatusCode(err), err.Error())
 		}
 
+		klog.Infof("#### pipeline: ")
+		klog.Errorf("#### pipeline: %+v", pipeline)
 		updatedConfig, err := updatePipelineConfigXml(config, pipeline.Spec.Pipeline)
 		if err != nil {
 			klog.Errorf("%+v", err)
