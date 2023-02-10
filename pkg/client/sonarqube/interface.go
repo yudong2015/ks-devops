@@ -76,7 +76,7 @@ func (s *SonarQube) GetSonarResultsByTaskIds(taskIDs ...string) ([]*SonarStatus,
 		}
 		measures, _, err := s.client.Measures.Component(measuresComponentOption)
 		if err != nil {
-			klog.Errorf("get sonar task error [%+v]", err)
+			klog.Errorf("get sonar component measures error [%+v]", err)
 			continue
 		}
 		sonarStatus.Measures = measures
