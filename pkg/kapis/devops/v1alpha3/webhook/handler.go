@@ -19,6 +19,7 @@ package webhook
 import (
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	"kubesphere.io/devops/pkg/event/common"
 	"kubesphere.io/devops/pkg/event/workflowrun"
 	"kubesphere.io/devops/pkg/kapis"
@@ -41,10 +42,14 @@ func NewHandler(genericClient client.Client) *Handler {
 func (handler *Handler) ReceiveEventsFromJenkins(request *restful.Request, response *restful.Response) {
 	// concrete event body
 	event := &common.Event{}
+	klog.Info("### receive event ..")
 	if err := request.ReadEntity(event); err != nil {
+		klog.Info("### parse event error: ", err)
 		kapis.HandleError(request, response, err)
 		return
 	}
+	klog.Infof("### event ID: %s, source: %s, type: %s, dataType: %s, time: %s", event.ID, event.Source, event.Type, event.DataType, event.Time)
+	klog.Infof("### event data: %s", string(event.Data))
 
 	// TODO Make all handlers execute asynchronously
 
