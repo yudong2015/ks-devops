@@ -19,14 +19,12 @@ package app
 import (
 	"bytes"
 	"context"
-	"errors"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-	"kubesphere.io/devops/cmd/tools/jwt/app/mock_app"
 	"kubesphere.io/devops/pkg/config"
 	"testing"
 )
@@ -120,11 +118,7 @@ var _ = Describe("", func() {
 
 	Context("stdout case", func() {
 		It("should success", func() {
-			factory := mock_app.NewMockk8sClientFactory(ctrl)
-			factory.EXPECT().Get().
-				Return(fake.NewSimpleClientset(), nil)
-
-			cmd := NewCmd(factory)
+			cmd := NewCmd()
 			cmd.SetOut(bytes.NewBuffer([]byte{}))
 			_, err := cmd.ExecuteC()
 			Expect(err).NotTo(BeNil())
@@ -133,11 +127,7 @@ var _ = Describe("", func() {
 
 	Context("update ConfigMap case", func() {
 		It("cannot get k8s client", func() {
-			factory := mock_app.NewMockk8sClientFactory(ctrl)
-			factory.EXPECT().Get().
-				Return(fake.NewSimpleClientset(), errors.New("no k8s env"))
-
-			cmd := NewCmd(factory)
+			cmd := NewCmd()
 			cmd.SetOut(bytes.NewBuffer([]byte{}))
 			cmd.SetErr(bytes.NewBuffer([]byte{}))
 			cmd.SetArgs([]string{"jwt", "--output", "configmap"})
@@ -148,11 +138,7 @@ var _ = Describe("", func() {
 		})
 
 		It("cannot find configmap", func() {
-			factory := mock_app.NewMockk8sClientFactory(ctrl)
-			factory.EXPECT().Get().
-				Return(fake.NewSimpleClientset(), nil)
-
-			cmd := NewCmd(factory)
+			cmd := NewCmd()
 			cmd.SetOut(bytes.NewBuffer([]byte{}))
 			cmd.SetErr(bytes.NewBuffer([]byte{}))
 			cmd.SetArgs([]string{"jwt", "--output", "configmap"})
@@ -163,16 +149,7 @@ var _ = Describe("", func() {
 		})
 
 		It("no kubesphere.yaml found", func() {
-			factory := mock_app.NewMockk8sClientFactory(ctrl)
-			factory.EXPECT().Get().
-				Return(fake.NewSimpleClientset(&v1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "kubesphere-devops-system",
-						Name:      "devops-config",
-					},
-				}), nil)
-
-			cmd := NewCmd(factory)
+			cmd := NewCmd()
 			cmd.SetOut(bytes.NewBuffer([]byte{}))
 			cmd.SetErr(bytes.NewBuffer([]byte{}))
 			cmd.SetArgs([]string{"jwt", "--output", "configmap"})
@@ -194,10 +171,7 @@ var _ = Describe("", func() {
 				Data: data,
 			})
 
-			factory := mock_app.NewMockk8sClientFactory(ctrl)
-			factory.EXPECT().Get().Return(client, nil)
-
-			cmd := NewCmd(factory)
+			cmd := NewCmd()
 			cmd.SetOut(bytes.NewBuffer([]byte{}))
 			cmd.SetErr(bytes.NewBuffer([]byte{}))
 			cmd.SetArgs([]string{"jwt", "--output", "configmap"})
@@ -228,10 +202,7 @@ var _ = Describe("", func() {
 				Data: data,
 			})
 
-			factory := mock_app.NewMockk8sClientFactory(ctrl)
-			factory.EXPECT().Get().Return(client, nil)
-
-			cmd := NewCmd(factory)
+			cmd := NewCmd()
 			cmd.SetOut(bytes.NewBuffer([]byte{}))
 			cmd.SetErr(bytes.NewBuffer([]byte{}))
 			cmd.SetArgs([]string{"jwt", "--output", "configmap"})
@@ -265,10 +236,7 @@ devops:
 				Data: data,
 			})
 
-			factory := mock_app.NewMockk8sClientFactory(ctrl)
-			factory.EXPECT().Get().Return(client, nil)
-
-			cmd := NewCmd(factory)
+			cmd := NewCmd()
 			cmd.SetOut(bytes.NewBuffer([]byte{}))
 			cmd.SetErr(bytes.NewBuffer([]byte{}))
 			cmd.SetArgs([]string{"jwt", "--output", "configmap"})

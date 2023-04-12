@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	if err := app.NewCmd(&app.DefaultK8sClientFactory{}).Execute(); err != nil {
+	if err := app.NewCmd().Execute(); err != nil {
 		log.Fatalln(err)
 	}
 }

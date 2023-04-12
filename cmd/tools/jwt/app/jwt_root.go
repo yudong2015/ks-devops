@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	v1 "k8s.io/api/core/v1"
+	"kubesphere.io/devops/pkg/client/k8s"
 	"math/rand"
 	"strings"
 	"time"
@@ -33,10 +34,8 @@ import (
 )
 
 // NewCmd creates a root command for jwt
-func NewCmd(k8sClientFactory k8sClientFactory) (cmd *cobra.Command) {
-	opt := &jwtOption{
-		k8sClientFactory: k8sClientFactory,
-	}
+func NewCmd() (cmd *cobra.Command) {
+	opt := &jwtOption{}
 
 	cmd = &cobra.Command{
 		Use:     "jwt",
@@ -68,16 +67,17 @@ type jwtOption struct {
 	name      string
 
 	client           kubernetes.Interface
-	k8sClientFactory k8sClientFactory
 	configMapUpdater configMapUpdater
 }
 
 func (o *jwtOption) preRunE(cmd *cobra.Command, args []string) (err error) {
 	if o.output == "configmap" || o.secret == "" {
-		if o.client, err = o.k8sClientFactory.Get(); err != nil {
+		var client k8s.Client
+		if client, err = k8s.NewKubernetesClient(k8s.NewKubernetesOptions()); err != nil {
 			err = fmt.Errorf("cannot create Kubernetes client, error: %v", err)
 			return
 		}
+		o.client = client.Kubernetes()
 		o.configMapUpdater = o
 	}
 
