@@ -20,6 +20,7 @@ import (
 	"github.com/emicklei/go-restful"
 	"io"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	"kubesphere.io/devops/pkg/api"
 	"kubesphere.io/devops/pkg/api/devops/v1alpha3"
 	"kubesphere.io/devops/pkg/apiserver/query"
@@ -47,6 +48,7 @@ func (h *handler) handleRenderClusterTemplate(request *restful.Request, response
 }
 
 func (h *handler) queryClusterTemplates(commonQuery *query.Query) (*api.ListResult, error) {
+	klog.Error("list clustertemplates ...")
 	templateList := &v1alpha3.ClusterTemplateList{}
 	if err := h.List(context.Background(),
 		templateList,

@@ -19,6 +19,7 @@ package steptemplate
 import (
 	"context"
 	"fmt"
+	"k8s.io/klog/v2"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
@@ -33,6 +34,7 @@ import (
 func (h *handler) clusterStepTemplates(req *restful.Request, resp *restful.Response) {
 	ctx := context.TODO()
 
+	klog.Error("list clustersteptemplate ...")
 	clusterStepTemplateList := &v1alpha3.ClusterStepTemplateList{}
 	err := h.List(ctx, clusterStepTemplateList)
 
