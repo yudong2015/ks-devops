@@ -241,8 +241,9 @@ func registerRoutersForWorkspace(handler *devopsHandler, ws *restful.WebService)
 		Doc("check the devops project name does it exist").
 		Returns(http.StatusOK, api.StatusOK, nil))
 
-	ws.Route(ws.HEAD("/workspaces/{workspace}/devops/").
+	ws.Route(ws.HEAD("/workspaces/{workspace}/devops/{devops}").
 		To(handler.CheckDevopsName).
+		Param(ws.PathParameter("devops", "project name")).
 		Doc("check the devops project name does it exist").
 		Returns(http.StatusOK, api.StatusOK, nil))
 }
