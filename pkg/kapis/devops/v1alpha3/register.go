@@ -240,6 +240,11 @@ func registerRoutersForWorkspace(handler *devopsHandler, ws *restful.WebService)
 		To(handler.CheckDevopsName).
 		Doc("check the devops project name does it exist").
 		Returns(http.StatusOK, api.StatusOK, nil))
+
+	ws.Route(ws.HEAD("/workspaces/{workspace}/devops/").
+		To(handler.CheckDevopsName).
+		Doc("check the devops project name does it exist").
+		Returns(http.StatusOK, api.StatusOK, nil))
 }
 
 func registerRoutersForCI(handler *devopsHandler, ws *restful.WebService) {
