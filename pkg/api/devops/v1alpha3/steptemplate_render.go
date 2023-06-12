@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"k8s.io/klog/v2"
 	"strings"
 	"text/template"
 
@@ -36,6 +37,8 @@ func (t *StepTemplateSpec) Render(param map[string]interface{}, secret *v1.Secre
 		}
 	}
 
+	klog.Errorf("### param: %+v, secret: %+v", param, secret)
+
 	switch t.Runtime {
 	case "dsl":
 		output, err = dslRender(t.Template, param, secret)
@@ -44,6 +47,7 @@ func (t *StepTemplateSpec) Render(param map[string]interface{}, secret *v1.Secre
 	default:
 		output, err = shellRender(t.Template, param, secret)
 	}
+	klog.Errorf("### output: %s, error: %+v", output, err)
 
 	if t.Secret.Wrap && secret != nil {
 		output = wrapWithCredential(t.Secret.Type, secret.Name, output)
