@@ -18,7 +18,7 @@ package steptemplate
 
 import (
 	"context"
-	"fmt"
+	"k8s.io/klog/v2"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
@@ -72,15 +72,13 @@ func (h *handler) renderClusterStepTemplate(req *restful.Request, resp *restful.
 
 	var secret *v1.Secret
 	if secret, err = h.getSecret(req); err != nil {
-		// TODO considering have logger output instead of the std output
-		fmt.Printf("something goes wrong when getting secret, error: %v\n", err)
+		klog.Warningf("something goes wrong when getting secret, error: %v\n", err)
 	}
 
 	param := map[string]interface{}{}
 	// get the parameters from request
 	if err = req.ReadEntity(&param); err != nil {
-		// TODO considering have logger output instead of the std output
-		fmt.Printf("something goes wrong when getting parameter from request body, error: %v\n", err)
+		klog.Warningf("something goes wrong when getting parameter from request body, error: %v\n", err)
 	}
 
 	var output string
