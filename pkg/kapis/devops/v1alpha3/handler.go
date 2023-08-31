@@ -49,6 +49,12 @@ func (h *devopsHandler) GetDevOpsProject(request *restful.Request, response *res
 	workspace := request.PathParameter("workspace")
 	devopsProject := request.PathParameter("devops")
 	generateNameFlag := request.QueryParameter("generateName")
+	check := request.QueryParameter("check")
+
+	if check == "true" {
+		h.CheckDevopsName(request, response, workspace, devopsProject, generateNameFlag)
+		return
+	}
 
 	if client, err := h.getDevOps(request); err == nil {
 		var project *v1alpha3.DevOpsProject
@@ -392,4 +398,24 @@ func (h *devopsHandler) getDevOps(request *restful.Request) (operator devops.Dev
 		operator = devops.NewDevopsOperator(h.devopsClient, k8sClient.Kubernetes(), k8sClient.KubeSphere())
 	}
 	return
+}
+
+func (h *devopsHandler) CheckDevopsName(request *restful.Request, response *restful.Response, workspace, devopsName string, generateNameFlag string) {
+
+	var result map[string]interface{}
+	if client, err := h.getDevOps(request); err == nil {
+
+		switch generateNameFlag {
+		case "true":
+			result, err = client.CheckDevopsProject(workspace, devopsName)
+			if err != nil {
+				errorHandle(request, response, result, err)
+			}
+			errorHandle(request, response, result, nil)
+		default:
+			errorHandle(request, response, nil, errors.NewBadRequest("generateNameFlag can not be false"))
+		}
+	} else {
+		kapis.HandleBadRequest(response, request, err)
+	}
 }

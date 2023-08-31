@@ -169,6 +169,10 @@ func (d *Devops) GetPipeline(projectName, pipelineName string, httpParameters *d
 	return nil, nil
 }
 
+func (d *Devops) CheckPipelineName(projectName, pipelineName string, httpParameters *devops.HttpParameters) (map[string]interface{}, error) {
+	return nil, nil
+}
+
 func (d *Devops) ListPipelines(httpParameters *devops.HttpParameters) (*devops.PipelineList, error) {
 	return nil, nil
 }
@@ -190,7 +194,7 @@ func (d *Devops) RunPipeline(projectName, pipelineName string, httpParameters *d
 func (d *Devops) GetArtifacts(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]devops.Artifacts, error) {
 	return nil, nil
 }
-func (d *Devops) DownloadArtifact(projectName, pipelineName, runId, filename string) (io.ReadCloser, error) {
+func (d *Devops) DownloadArtifact(projectName, pipelineName, runId, filename string, isMultiBranch bool, branchName string) (io.ReadCloser, error) {
 	return nil, nil
 }
 
