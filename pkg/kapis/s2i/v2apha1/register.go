@@ -19,11 +19,12 @@
 package v2alpha1
 
 import (
+	"net/http"
+
 	"github.com/emicklei/go-restful"
 	"github.com/shipwright-io/build/pkg/apis/build/v1alpha1"
 	"kubesphere.io/devops/pkg/api"
 	devopsClient "kubesphere.io/devops/pkg/client/devops"
-	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -34,76 +35,85 @@ func RegisterRoutes(ws *restful.WebService, devopsClient devopsClient.Interface,
 		client:       c,
 	})
 
-	//ws.Route(ws.GET("/namespaces/{namespace}/imageBuilds/{imageBuild}").
-	ws.Route(ws.GET("/namespaces/{namespace}/imageBuilds").
-		To(handler.listImageBuilds).
-		Doc("Get all imageBuilds").
-		Param(ws.PathParameter("namespace", "Namespace of the imageBuild")).
-		//Param(ws.PathParameter("imageBuild", "Name of the imageBuild")).
-		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildList{}))
-
 	ws.Route(ws.POST("/namespaces/{namespace}/ImageBuilds/{ImageBuild}").
 		To(handler.createImageBuild).
-		Doc("Create a ImageBuild").
+		Doc("Create an ImageBuild").
 		Param(ws.PathParameter("namespace", "Namespace of the ImageBuild")).
-		Param(ws.PathParameter("ImageBuild", "Name of the ImageBuild")).
+		Param(ws.PathParameter("imageBuild", "Name of the ImageBuild")).
 		Param(ws.QueryParameter("codeUrl", "URL for the code")).
 		Param(ws.QueryParameter("languageKind", "Kind of the language")).
 		Param(ws.QueryParameter("outputImageUrl", "Output image url")).
-		//Param(ws.QueryParameter("branch", "The name of SCM reference, only for multi-branch pipeline")).
 		Returns(http.StatusCreated, api.StatusOK, v1alpha1.Build{}))
+
+	ws.Route(ws.GET("/namespaces/{namespace}/imageBuilds").
+		To(handler.listImageBuilds).
+		Doc("Get all imageBuilds").
+		Param(ws.PathParameter("namespace", "Namespace of the imageBuilds")).
+		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildList{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/ImageBuilds/{ImageBuild}").
 		To(handler.getImageBuild).
-		Doc("Get a ImageBuild").
+		Doc("Get an ImageBuild").
 		Param(ws.PathParameter("namespace", "Namespace of the ImageBuild")).
-		Param(ws.PathParameter("ImageBuild", "Name of the ImageBuild")).
+		Param(ws.PathParameter("imageBuild", "Name of the ImageBuild")).
 		Returns(http.StatusOK, api.StatusOK, v1alpha1.Build{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/ImageBuilds/{ImageBuild}").
 		To(handler.deleteImageBuild).
-		Doc("Get a ImageBuild").
-		Param(ws.PathParameter("namespace", "Namespace of the ImageBuild")).
-		Param(ws.PathParameter("ImageBuild", "Name of the ImageBuild")).
-		Returns(http.StatusOK, api.StatusOK, v1alpha1.Build{}))
-
-	ws.Route(ws.POST("/namespaces/{namespace}/ImageBuildRuns/{ImageBuildRun}").
-		To(handler.createImageBuildRun).
-		Doc("Create a ImageBuildRun").
+		Doc("Delete an ImageBuild").
 		Param(ws.PathParameter("namespace", "Namespace of the ImageBuildRun")).
-		Param(ws.PathParameter("ImageBuildRun", "Name of the ImageBuildRun for imageBuild")).
-		Param(ws.QueryParameter("ImageBuild", "Name of Build for the buildRun")).
-		//Param(ws.QueryParameter("branch", "The name of SCM reference, only for multi-branch pipeline")).
+		Param(ws.PathParameter("imageBuild", "Name of the ImageBuildRun")).
+		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildRun{}))
+
+	ws.Route(ws.POST("/namespaces/{namespace}/ImageBuilds/{ImageBuild}").
+		To(handler.updateImageBuild).
+		Doc("Update an ImageBuild").
+		Param(ws.PathParameter("namespace", "Namespace of the ImageBuild")).
+		Param(ws.PathParameter("imageBuild", "Name of the ImageBuild")).
+		Param(ws.QueryParameter("codeUrl", "URL for the code")).
+		Param(ws.QueryParameter("languageKind", "Kind of the language")).
+		Param(ws.QueryParameter("outputImageUrl", "Output image url")).
 		Returns(http.StatusCreated, api.StatusOK, v1alpha1.Build{}))
 
-	ws.Route(ws.GET("/namespaces/{namespace}/ImageBuildRuns/{ImageBuildRun}").
-		To(handler.deleteImageBuildRun).
-		Doc("Delete a ImageBuildRun").
-		Param(ws.PathParameter("namespace", "Namespace of the ImageBuildRun")).
-		Param(ws.PathParameter("ImageBuildRun", "Name of the ImageBuildRun")).
-		Returns(http.StatusOK, api.StatusOK, v1alpha1.Build{}))
-
-	ws.Route(ws.GET("/namespaces/{namespace}/ImageBuildRuns/{ImageBuild}").
-		To(handler.listImageBuildRuns).
-		Doc("Create a ImageBuildRun").
-		Param(ws.PathParameter("namespace", "Namespace of the ImageBuildRun")).
-		//Param(ws.PathParameter("ImageBuildRun", "Name of the ImageBuildRun for imageBuild")).
-		Param(ws.QueryParameter("ImageBuild", "Name of Build for the buildRun")).
-		//Param(ws.QueryParameter("branch", "The name of SCM reference, only for multi-branch pipeline")).
-		Returns(http.StatusCreated, api.StatusOK, v1alpha1.BuildRunList{}))
+	ws.Route(ws.GET("/namespaces/{namespace}/ImageBuildStrategies").
+		To(handler.listImageBuildStrategies).
+		Doc("Get all ImageBuildStrategies").
+		Param(ws.PathParameter("namespace", "Namespace of the ImageBuildStrategies")).
+		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildStrategyList{}))
 
 	ws.Route(ws.GET("/namespaces/{namespace}/imageBuildStrategys/{imageBuildStrategy}").
 		To(handler.getImageBuildStrategy).
-		Doc("Get a imageBuildStrategy").
+		Doc("Get an imageBuildStrategy").
 		Param(ws.PathParameter("namespace", "Namespace of the imageBuildStrategy")).
-		Param(ws.PathParameter("getImageBuildStrategy", "Name of the imageBuildStrategy")).
+		Param(ws.PathParameter("imageBuildStrategy", "Name of the imageBuildStrategy")).
 		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildStrategy{}))
 
-	ws.Route(ws.GET("/namespaces/{namespace}/ImageBuildStrategys").
-		To(handler.listImageBuildStrategy).
-		Doc("Get all ImageBuildStrategy").
-		Param(ws.PathParameter("namespace", "Namespace of the ImageBuildStrategy")).
-		//Param(ws.PathParameter("imageBuild", "Name of the imageBuild")).
-		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildList{}))
+	ws.Route(ws.POST("/namespaces/{namespace}/ImageBuildRuns/{ImageBuildRun}").
+		To(handler.createImageBuildRun).
+		Doc("Create an ImageBuildRun").
+		Param(ws.PathParameter("namespace", "Namespace of the ImageBuildRun")).
+		Param(ws.PathParameter("imageBuildRun", "Name of the ImageBuildRun for imageBuild")).
+		Param(ws.QueryParameter("imageBuild", "Name of Build for the buildRun")).
+		Returns(http.StatusCreated, api.StatusOK, v1alpha1.BuildRun{}))
+
+	ws.Route(ws.GET("/namespace/{namespace}/ImageBuildRuns").
+		To(handler.listImageBuildRuns).
+		Doc("Get all imageBuildRuns").
+		Param(ws.PathParameter("namespace", "Namespace of imageBuildRuns")).
+		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildRunList{}))
+
+	ws.Route(ws.GET("/namespace/{namespace}/ImageBuildRuns/{ImageBuildRun}").
+		To(handler.getImageBuildRun).
+		Doc("Get an imageBuildRun").
+		Param(ws.PathParameter("namespace", "Namespace of imageBuildRun")).
+		Param(ws.PathParameter("imageBuildRun", "Name of the ImageBuildRun")).
+		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildRun{}))
+
+	ws.Route(ws.GET("/namespaces/{namespace}/ImageBuildRuns/{ImageBuildRun}").
+		To(handler.deleteImageBuildRun).
+		Doc("Delete an ImageBuildRun").
+		Param(ws.PathParameter("namespace", "Namespace of the ImageBuildRun")).
+		Param(ws.PathParameter("imageBuildRun", "Name of the ImageBuildRun")).
+		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildRun{}))
 
 }
