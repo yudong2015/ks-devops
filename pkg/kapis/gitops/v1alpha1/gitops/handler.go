@@ -19,6 +19,7 @@ import (
 	"context"
 	"github.com/emicklei/go-restful"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"kubesphere.io/devops/pkg/api/gitops/v1alpha1"
 	"kubesphere.io/devops/pkg/apiserver/query"
 	"kubesphere.io/devops/pkg/kapis/common"
@@ -86,9 +87,7 @@ func (h *Handler) DelApplication(req *restful.Request, res *restful.Response) {
 	}
 	err := h.Get(ctx, objectKey, application)
 	if err == nil {
-		switch application.Spec.Kind {
-		case v1alpha1.ArgoCD:
-			// add the Argo CD resources finalizer if cascade is true
+		if argo := application.Spec.ArgoApp; argo != nil {
 			if cascade == "true" {
 				if k8sutil.AddFinalizer(&application.ObjectMeta, v1alpha1.ArgoCDResourcesFinalizer) {
 					if err = h.Update(ctx, application); err != nil {
@@ -102,7 +101,8 @@ func (h *Handler) DelApplication(req *restful.Request, res *restful.Response) {
 					}
 				}
 			}
-		case v1alpha1.FluxCD:
+		} else {
+			klog.Errorf("Application %s in namespace %s is not type argocd", name, namespace)
 		}
 		err = h.Delete(ctx, application)
 	}

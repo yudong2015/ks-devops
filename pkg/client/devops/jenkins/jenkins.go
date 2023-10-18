@@ -216,6 +216,18 @@ func (j *Jenkins) Poll() (int, error) {
 	return resp.StatusCode, nil
 }
 
+func (j *Jenkins) CheckPipelineName(projectName, pipelineName string, httpParameters *devops.HttpParameters) (map[string]interface{}, error) {
+
+	httpParameters.Url.RawQuery = fmt.Sprintf("value=%s", pipelineName)
+	PipelineOjb := &Pipeline{
+		HttpParameters: httpParameters,
+		Jenkins:        j,
+		Path:           fmt.Sprintf(CheckPipelineName, projectName),
+	}
+	res, err := PipelineOjb.CheckPipelineName()
+	return res, err
+}
+
 func (j *Jenkins) GetPipeline(projectName, pipelineName string, httpParameters *devops.HttpParameters) (*devops.Pipeline, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
@@ -296,14 +308,13 @@ func (j *Jenkins) GetArtifacts(projectName, pipelineName, runId string, httpPara
 	return res, err
 }
 
-func (j *Jenkins) GetRunLog(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]byte, error) {
+func (j *Jenkins) GetRunLog(projectName, pipelineName, runId string, httpParameters *devops.HttpParameters) ([]byte, http.Header, error) {
 	PipelineOjb := &Pipeline{
 		HttpParameters: httpParameters,
 		Jenkins:        j,
 		Path:           fmt.Sprintf(GetRunLogUrl+httpParameters.Url.RawQuery, projectName, pipelineName, runId),
 	}
-	res, err := PipelineOjb.GetRunLog()
-	return res, err
+	return PipelineOjb.GetRunLog()
 }
 
 func (j *Jenkins) GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, httpParameters *devops.HttpParameters) ([]byte, http.Header, error) {

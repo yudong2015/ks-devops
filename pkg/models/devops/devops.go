@@ -60,6 +60,7 @@ type DevopsOperator interface {
 	DeleteDevOpsProject(workspace string, projectName string) error
 	UpdateDevOpsProject(workspace string, project *v1alpha3.DevOpsProject) (*v1alpha3.DevOpsProject, error)
 	ListDevOpsProject(workspace string, limit, offset int) (api.ListResult, error)
+	CheckDevopsProject(workspace, projectName string) (map[string]interface{}, error)
 
 	CreatePipelineObj(projectName string, pipeline *v1alpha3.Pipeline) (*v1alpha3.Pipeline, error)
 	GetPipelineObj(projectName string, pipelineName string) (*v1alpha3.Pipeline, error)
@@ -80,6 +81,7 @@ type DevopsOperator interface {
 	UpdateCredentialObj(projectName string, secret *v1.Secret) (*v1.Secret, error)
 	ListCredentialObj(projectName string, query *query.Query) (api.ListResult, error)
 
+	CheckPipelineName(projectName, pipelineName string, req *http.Request) (map[string]interface{}, error)
 	GetPipeline(projectName, pipelineName string, req *http.Request) (*devops.Pipeline, error)
 	ListPipelines(req *http.Request) (*devops.PipelineList, error)
 	GetPipelineRun(projectName, pipelineName, runId string, req *http.Request) (*devops.PipelineRun, error)
@@ -88,7 +90,7 @@ type DevopsOperator interface {
 	ReplayPipeline(projectName, pipelineName, runId string, req *http.Request) (*devops.ReplayPipeline, error)
 	RunPipeline(projectName, pipelineName string, req *http.Request) (*devops.RunPipeline, error)
 	GetArtifacts(projectName, pipelineName, runId string, req *http.Request) ([]devops.Artifacts, error)
-	GetRunLog(projectName, pipelineName, runId string, req *http.Request) ([]byte, error)
+	GetRunLog(projectName, pipelineName, runId string, req *http.Request) ([]byte, http.Header, error)
 	GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, http.Header, error)
 	GetNodeSteps(projectName, pipelineName, runId, nodeId string, req *http.Request) ([]devops.NodeSteps, error)
 	GetPipelineRunNodes(projectName, pipelineName, runId string, req *http.Request) ([]devops.PipelineRunNodes, error)
@@ -221,6 +223,30 @@ func (d devopsOperator) CreateDevOpsProject(workspace string, project *v1alpha3.
 
 	// create it
 	return d.ksclient.DevopsV1alpha3().DevOpsProjects().Create(d.context, project, metav1.CreateOptions{})
+}
+
+// CheckDevopsProject check the devops is not exist
+func (d devopsOperator) CheckDevopsProject(workspace, projectName string) (map[string]interface{}, error) {
+	var list *v1alpha3.DevOpsProjectList
+	var err error
+
+	result := make(map[string]interface{})
+	result["exist"] = false
+
+	if list, err = d.ksclient.DevopsV1alpha3().DevOpsProjects().List(d.context, metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("%s=%s", constants.WorkspaceLabelKey, workspace),
+	}); err == nil {
+		for i := range list.Items {
+			item := list.Items[i]
+			if item.GenerateName == projectName {
+				result["exist"] = true
+				break
+			}
+		}
+		return result, nil
+	} else {
+		return result, err
+	}
 }
 
 // GetDevOpsProjectByGenerateName finds the DevOps project by workspace and project name
@@ -475,6 +501,10 @@ func (d devopsOperator) ListCredentialObj(projectName string, query *query.Query
 	return *resourcesV1alpha3.DefaultList(result, query, resourcesV1alpha3.DefaultCompare(), resourcesV1alpha3.DefaultFilter()), nil
 }
 
+func (d devopsOperator) CheckPipelineName(projectName, pipelineName string, req *http.Request) (map[string]interface{}, error) {
+	return d.devopsClient.CheckPipelineName(projectName, pipelineName, convertToHttpParameters(req))
+}
+
 // others
 func (d devopsOperator) GetPipeline(projectName, pipelineName string, req *http.Request) (*devops.Pipeline, error) {
 	return d.devopsClient.GetPipeline(projectName, pipelineName, convertToHttpParameters(req))
@@ -552,15 +582,15 @@ func (d devopsOperator) GetArtifacts(projectName, pipelineName, runId string, re
 	return res, err
 }
 
-func (d devopsOperator) GetRunLog(projectName, pipelineName, runId string, req *http.Request) ([]byte, error) {
+func (d devopsOperator) GetRunLog(projectName, pipelineName, runId string, req *http.Request) ([]byte, http.Header, error) {
 
-	res, err := d.devopsClient.GetRunLog(projectName, pipelineName, runId, convertToHttpParameters(req))
+	res, header, err := d.devopsClient.GetRunLog(projectName, pipelineName, runId, convertToHttpParameters(req))
 	if err != nil {
 		klog.Error(err)
-		return nil, err
+		return nil, nil, err
 	}
 
-	return res, err
+	return res, header, err
 }
 
 func (d devopsOperator) GetStepLog(projectName, pipelineName, runId, nodeId, stepId string, req *http.Request) ([]byte, http.Header, error) {
