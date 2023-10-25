@@ -1,6 +1,6 @@
 /*
 
-  Copyright 2020 The KubeSphere Authors.
+  Copyright 2023 The KubeSphere Authors.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ func TestAPIsExist(t *testing.T) {
 	schema, err := v1alpha1.SchemeBuilder.Register().Build()
 	assert.Nil(t, err)
 
-	RegisterRoutes(wsWithGroup, fakedevops.NewFakeDevops(nil), fake.NewFakeClientWithScheme(schema))
+	registerRoutes(wsWithGroup, fakedevops.NewFakeDevops(nil), fake.NewFakeClientWithScheme(schema))
 	restful.DefaultContainer.Add(wsWithGroup)
 
 	type args struct {

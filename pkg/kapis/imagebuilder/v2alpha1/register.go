@@ -1,6 +1,6 @@
 /*
 
-  Copyright 2020 The KubeSphere Authors.
+  Copyright 2023 The KubeSphere Authors.
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 package v2alpha1
 
 import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"kubesphere.io/devops/pkg/apiserver/runtime"
 	"net/http"
 
 	"github.com/emicklei/go-restful"
@@ -28,8 +30,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// GroupVersion describes CRD group and its version.
+var GroupVersion = schema.GroupVersion{Group: "devops.kubesphere.io", Version: "v2alpha1"}
+
+// AddToContainer adds web service into container.
+func AddToContainer(container *restful.Container, client client.Client, devopsClient devopsClient.Interface) (ws *restful.WebService) {
+	ws = runtime.NewWebService(GroupVersion)
+	registerRoutes(ws, devopsClient, client)
+	container.Add(ws)
+	return
+}
+
 // RegisterRoutes register routes into web service.
-func RegisterRoutes(ws *restful.WebService, devopsClient devopsClient.Interface, c client.Client) {
+func registerRoutes(ws *restful.WebService, devopsClient devopsClient.Interface, c client.Client) {
 	handler := newAPIHandler(apiHandlerOption{
 		devopsClient: devopsClient,
 		client:       c,
