@@ -16,6 +16,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// StrategyMapping Currently only support `buildpacks-v3` strategy
+var StrategyMapping = map[string]string{
+	"nodejs":  "buildpacks-v3-full",
+	"go":      "buildpacks-v3-go",
+	"python":  "buildpacks-v3-python",
+	"java":    "buildpacks-v3-java",
+	"default": "buildpacks-v3-full",
+}
+
 // apiHandlerOption holds some useful tools for API handler.
 type apiHandlerOption struct {
 	devopsClient devopsClient.Interface
@@ -33,11 +42,11 @@ func newAPIHandler(o apiHandlerOption) *apiHandler {
 }
 
 func (h *apiHandler) listImageBuilds(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
+	namespace := request.PathParameter("namespace")
 	queryParam := query.ParseQueryParameter(request)
 
 	opts := make([]client.ListOption, 0, 3)
-	opts = append(opts, client.InNamespace(nsName))
+	opts = append(opts, client.InNamespace(namespace))
 	buildList := &v1alpha1.BuildList{}
 
 	if err := h.client.List(context.Background(), buildList, opts...); err != nil {
@@ -63,11 +72,11 @@ func toBuildObjects(apps []v1alpha1.Build) []runtime.Object {
 }
 
 func (h *apiHandler) createImageBuild(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
-	imageBuildName := request.PathParameter("imageBuild")
-	codeUrl := request.QueryParameter("codeUrl")
-	languageKind := request.QueryParameter("languageKind")
-	outputImageUrl := request.QueryParameter("outputImageUrl")
+	namespace := request.PathParameter("namespace")
+	imageBuild := request.PathParameter("build")
+	sourceUrl := request.QueryParameter("sourceUrl")
+	language := request.QueryParameter("language")
+	outputImage := request.QueryParameter("outputImage")
 
 	build := v1alpha1.Build{}
 	err := request.ReadEntity(&build)
@@ -77,27 +86,17 @@ func (h *apiHandler) createImageBuild(request *restful.Request, response *restfu
 		return
 	}
 
-	build.Namespace = nsName
-	build.Name = imageBuildName + "-"
-	build.Spec.Source.URL = &codeUrl
+	build.Namespace = namespace
+	build.Name = imageBuild + "-"
+	build.Spec.Source.URL = &sourceUrl
 
-	// Currently only support `buildpacks-v3` strategy
-	strategyMapping := map[string]string{
-		"node":    "buildpacks-v3-full", //FIXME: `node` or `nodejs`
-		"go":      "buildpacks-v3-go",   //FIXME: `golang` or `go`
-		"python":  "buildpacks-v3-python",
-		"java":    "buildpacks-v3-java",
-		"default": "buildpacks-v3-full",
-	}
-
-	lowerLanguageKind := strings.ToLower(languageKind)
-	strategyName, exists := strategyMapping[lowerLanguageKind]
+	strategyName, exists := StrategyMapping[strings.ToLower(language)]
 	if !exists {
-		strategyName = strategyMapping["default"]
+		strategyName = StrategyMapping["default"]
 	}
 
 	build.Spec.Strategy.Name = strategyName
-	build.Spec.Output.Image = outputImageUrl
+	build.Spec.Output.Image = outputImage
 
 	if err := h.client.Create(context.Background(), &build); err != nil {
 		kapis.HandleError(request, response, err)
@@ -108,18 +107,18 @@ func (h *apiHandler) createImageBuild(request *restful.Request, response *restfu
 }
 
 func (h *apiHandler) updateImageBuild(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
-	imageBuildName := request.PathParameter("imageBuild")
+	namespace := request.PathParameter("namespace")
+	imageBuild := request.PathParameter("build")
 
 	oldBuild := v1alpha1.Build{}
-	if err := h.client.Get(context.Background(), client.ObjectKey{Name: imageBuildName}, &oldBuild); err != nil {
+	if err := h.client.Get(context.Background(), client.ObjectKey{Name: imageBuild}, &oldBuild); err != nil {
 		kapis.HandleError(request, response, err)
 		return
 	}
 
-	codeUrl := request.QueryParameter("codeUrl")
-	languageKind := request.QueryParameter("languageKind")
-	outputImageUrl := request.QueryParameter("outputImageUrl")
+	sourceUrl := request.QueryParameter("sourceUrl")
+	language := request.QueryParameter("language")
+	outputImage := request.QueryParameter("outputImage")
 
 	err := request.ReadEntity(&oldBuild)
 	if err != nil {
@@ -128,12 +127,12 @@ func (h *apiHandler) updateImageBuild(request *restful.Request, response *restfu
 		return
 	}
 
-	oldBuild.Spec.Source.URL = &codeUrl
-	if "nodejs" == languageKind {
+	oldBuild.Spec.Source.URL = &sourceUrl
+	if "nodejs" == language {
 		oldBuild.Spec.Strategy.Name = "buildpacks-v3"
 	}
-	oldBuild.Spec.Output.Image = outputImageUrl
-	oldBuild.Namespace = nsName
+	oldBuild.Spec.Output.Image = outputImage
+	oldBuild.Namespace = namespace
 
 	if err := h.client.Update(context.Background(), &oldBuild); err != nil {
 		kapis.HandleError(request, response, err)
@@ -144,12 +143,12 @@ func (h *apiHandler) updateImageBuild(request *restful.Request, response *restfu
 }
 
 func (h *apiHandler) getImageBuild(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
-	imageBuildName := request.PathParameter("ImageBuild")
+	namespace := request.PathParameter("namespace")
+	imageBuild := request.PathParameter("build")
 
 	// get imageBuild
 	build := v1alpha1.Build{}
-	if err := h.client.Get(context.Background(), client.ObjectKey{Namespace: nsName, Name: imageBuildName}, &build); err != nil {
+	if err := h.client.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: imageBuild}, &build); err != nil {
 		kapis.HandleError(request, response, err)
 		return
 	}
@@ -157,12 +156,12 @@ func (h *apiHandler) getImageBuild(request *restful.Request, response *restful.R
 }
 
 func (h *apiHandler) deleteImageBuild(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
-	imageBuildName := request.PathParameter("ImageBuild")
+	namespace := request.PathParameter("namespace")
+	imageBuild := request.PathParameter("build")
 
 	// get imageBuild
 	build := v1alpha1.Build{}
-	if err := h.client.Get(context.Background(), client.ObjectKey{Namespace: nsName, Name: imageBuildName}, &build); err != nil {
+	if err := h.client.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: imageBuild}, &build); err != nil {
 		kapis.HandleError(request, response, err)
 		return
 	}
@@ -174,9 +173,9 @@ func (h *apiHandler) deleteImageBuild(request *restful.Request, response *restfu
 }
 
 func (h *apiHandler) createImageBuildRun(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
-	imageBuildRunName := request.PathParameter("imageBuildRun")
-	buildName := request.QueryParameter("ImageBuild")
+	namespace := request.PathParameter("namespace")
+	buildrunName := request.PathParameter("imageBuildrun")
+	imageBuild := request.QueryParameter("build")
 
 	buildRun := v1alpha1.BuildRun{}
 	err := request.ReadEntity(&buildRun)
@@ -186,9 +185,9 @@ func (h *apiHandler) createImageBuildRun(request *restful.Request, response *res
 		return
 	}
 
-	buildRun.ObjectMeta.GenerateName = imageBuildRunName + "-"
-	buildRun.Spec.BuildRef.Name = buildName
-	buildRun.Namespace = nsName
+	buildRun.ObjectMeta.GenerateName = buildrunName + "-"
+	buildRun.Spec.BuildRef.Name = imageBuild
+	buildRun.Namespace = namespace
 
 	if err := h.client.Create(context.Background(), &buildRun); err != nil {
 		kapis.HandleError(request, response, err)
@@ -199,12 +198,12 @@ func (h *apiHandler) createImageBuildRun(request *restful.Request, response *res
 }
 
 func (h *apiHandler) getImageBuildRun(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
-	imageBuildRunName := request.PathParameter("ImageBuildRun")
+	namespace := request.PathParameter("namespace")
+	buildrunName := request.PathParameter("imageBuildrun")
 
 	// get imageBuildRun
 	buildRun := v1alpha1.BuildRun{}
-	if err := h.client.Get(context.Background(), client.ObjectKey{Namespace: nsName, Name: imageBuildRunName}, &buildRun); err != nil {
+	if err := h.client.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: buildrunName}, &buildRun); err != nil {
 		kapis.HandleError(request, response, err)
 		return
 	}
@@ -212,13 +211,13 @@ func (h *apiHandler) getImageBuildRun(request *restful.Request, response *restfu
 }
 
 func (h *apiHandler) deleteImageBuildRun(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
-	imageBuildRunName := request.PathParameter("ImageBuildRun")
+	namespace := request.PathParameter("namespace")
+	buildrunName := request.PathParameter("imageBuildrun")
 	ctx := context.Background()
 
 	// get imageBuild
 	buildRun := v1alpha1.BuildRun{}
-	if err := h.client.Get(ctx, client.ObjectKey{Namespace: nsName, Name: imageBuildRunName}, &buildRun); err != nil {
+	if err := h.client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: buildrunName}, &buildRun); err != nil {
 		kapis.HandleError(request, response, err)
 		return
 	}
@@ -230,14 +229,14 @@ func (h *apiHandler) deleteImageBuildRun(request *restful.Request, response *res
 }
 
 func (h *apiHandler) listImageBuildRuns(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
-	buildName := request.PathParameter("ImageBuild")
+	namespace := request.PathParameter("namespace")
+	imageBuild := request.PathParameter("build")
 
 	queryParam := query.ParseQueryParameter(request)
-	labelSelector := labels.SelectorFromSet(labels.Set{"build.shipwright.io/name": buildName})
+	labelSelector := labels.SelectorFromSet(labels.Set{"build.shipwright.io/name": imageBuild})
 
 	opts := make([]client.ListOption, 0, 3)
-	opts = append(opts, client.InNamespace(nsName))
+	opts = append(opts, client.InNamespace(namespace))
 	opts = append(opts, client.MatchingLabelsSelector{Selector: labelSelector})
 
 	buildRunList := &v1alpha1.BuildRunList{}
@@ -264,12 +263,12 @@ func toBuildRunObjects(apps []v1alpha1.BuildRun) []runtime.Object {
 }
 
 func (h *apiHandler) getImageBuildStrategy(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
+	namespace := request.PathParameter("namespace")
 	imageBuildStrategyName := request.PathParameter("imageBuildStrategy")
 
 	// get imageBuildStrategy
 	strategy := v1alpha1.BuildStrategy{}
-	if err := h.client.Get(context.Background(), client.ObjectKey{Namespace: nsName, Name: imageBuildStrategyName}, &Strategy); err != nil {
+	if err := h.client.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: imageBuildStrategyName}, &strategy); err != nil {
 		kapis.HandleError(request, response, err)
 		return
 	}
@@ -277,12 +276,12 @@ func (h *apiHandler) getImageBuildStrategy(request *restful.Request, response *r
 }
 
 func (h *apiHandler) listImageBuildStrategies(request *restful.Request, response *restful.Response) {
-	nsName := request.PathParameter("namespace")
+	namespace := request.PathParameter("namespace")
 
 	queryParam := query.ParseQueryParameter(request)
 
 	opts := make([]client.ListOption, 0, 3)
-	opts = append(opts, client.InNamespace(nsName))
+	opts = append(opts, client.InNamespace(namespace))
 
 	buildStrategyList := &v1alpha1.BuildStrategyList{}
 
