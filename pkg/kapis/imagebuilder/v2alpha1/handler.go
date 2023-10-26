@@ -281,34 +281,28 @@ func toBuildRunObjects(apps []v1alpha1.BuildRun) []runtime.Object {
 }
 
 func (h *apiHandler) getImageBuildStrategy(request *restful.Request, response *restful.Response) {
-	namespace := request.PathParameter("namespace")
-	imageBuildStrategyName := request.PathParameter("imageBuildStrategy")
+	strategyName := request.PathParameter("imageBuildStrategy")
 
 	// get imageBuildStrategy
-	strategy := v1alpha1.BuildStrategy{}
-	if err := h.client.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: imageBuildStrategyName}, &strategy); err != nil {
+	strategy := &v1alpha1.ClusterBuildStrategy{}
+	if err := h.client.Get(context.Background(), client.ObjectKey{Name: strategyName}, strategy); err != nil {
 		kapis.HandleError(request, response, err)
 		return
 	}
-	_ = response.WriteEntity(&strategy)
+	_ = response.WriteEntity(strategy)
 }
 
 func (h *apiHandler) listImageBuildStrategies(request *restful.Request, response *restful.Response) {
-	namespace := request.PathParameter("namespace")
-
 	queryParam := query.ParseQueryParameter(request)
 
-	opts := make([]client.ListOption, 0, 3)
-	opts = append(opts, client.InNamespace(namespace))
+	strategyList := &v1alpha1.ClusterBuildStrategyList{}
 
-	buildStrategyList := &v1alpha1.BuildStrategyList{}
-
-	if err := h.client.List(context.Background(), buildStrategyList, opts...); err != nil {
+	if err := h.client.List(context.Background(), strategyList); err != nil {
 		kapis.HandleError(request, response, err)
 		return
 	}
 
-	apiResult := resourcesV1alpha3.DefaultList(toBuildStrategyObjects(buildStrategyList.Items),
+	apiResult := resourcesV1alpha3.DefaultList(toBuildStrategyObjects(strategyList.Items),
 		queryParam,
 		resourcesV1alpha3.DefaultCompare(),
 		resourcesV1alpha3.DefaultFilter(), nil)
@@ -316,7 +310,7 @@ func (h *apiHandler) listImageBuildStrategies(request *restful.Request, response
 	_ = response.WriteAsJson(apiResult)
 }
 
-func toBuildStrategyObjects(apps []v1alpha1.BuildStrategy) []runtime.Object {
+func toBuildStrategyObjects(apps []v1alpha1.ClusterBuildStrategy) []runtime.Object {
 	objs := make([]runtime.Object, len(apps))
 	for i := range apps {
 		objs[i] = &apps[i]
