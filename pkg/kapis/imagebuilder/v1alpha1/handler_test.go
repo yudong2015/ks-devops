@@ -16,6 +16,6 @@
 
 */
 
-package v2alpha1
+package v1alpha1
 
 // TODO:

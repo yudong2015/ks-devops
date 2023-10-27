@@ -16,7 +16,7 @@
 
 */
 
-package v2alpha1
+package v1alpha1
 
 import (
 	restfulspec "github.com/emicklei/go-restful-openapi"
@@ -33,7 +33,7 @@ import (
 )
 
 // GroupVersion describes CRD group and its version.
-var GroupVersion = schema.GroupVersion{Group: "devops.kubesphere.io", Version: "v2alpha1"}
+var GroupVersion = schema.GroupVersion{Group: "builder.kubesphere.io", Version: "v1alpha1"}
 
 // AddToContainer adds web service into container.
 func AddToContainer(container *restful.Container, client client.Client, devopsClient devopsClient.Interface) (ws *restful.WebService) {

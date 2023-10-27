@@ -61,7 +61,7 @@ import (
 	"kubesphere.io/devops/pkg/informers"
 	devopsv1alpha2 "kubesphere.io/devops/pkg/kapis/devops/v1alpha2"
 	devopsv1alpha3 "kubesphere.io/devops/pkg/kapis/devops/v1alpha3"
-	imagebuilder "kubesphere.io/devops/pkg/kapis/imagebuilder/v2alpha1"
+	imagebuilder "kubesphere.io/devops/pkg/kapis/imagebuilder/v1alpha1"
 	utilnet "kubesphere.io/devops/pkg/utils/net"
 )
 
