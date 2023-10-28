@@ -86,14 +86,14 @@ func registerRoutes(ws *restful.WebService, devopsClient devopsClient.Interface,
 		Param(ws.PathParameter("imagebuild", "Name of the imagebuild")).
 		Returns(http.StatusOK, api.StatusOK, v1alpha1.Build{}))
 
-	ws.Route(ws.GET("/namespaces/{namespace}/imagebuilds/{imagebuild}").
+	ws.Route(ws.DELETE("/namespaces/{namespace}/imagebuilds/{imagebuild}").
 		To(handler.deleteImagebuild).
 		Doc("Delete an imagebuild").
 		Param(ws.PathParameter("namespace", "Namespace of the imagebuildRun")).
 		Param(ws.PathParameter("imagebuild", "Name of the imagebuildRun")).
 		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildRun{}))
 
-	ws.Route(ws.POST("/namespaces/{namespace}/imagebuilds/{imagebuild}").
+	ws.Route(ws.PUT("/namespaces/{namespace}/imagebuilds/{imagebuild}").
 		To(handler.updateImagebuild).
 		Doc("Update an imagebuild").
 		Param(ws.PathParameter("namespace", "Namespace of the imagebuild")).
@@ -124,7 +124,7 @@ func registerRoutes(ws *restful.WebService, devopsClient devopsClient.Interface,
 		Param(ws.PathParameter("imagebuildRun", "Name of the imagebuildRun")).
 		Returns(http.StatusOK, api.StatusOK, v1alpha1.BuildRun{}))
 
-	ws.Route(ws.GET("/namespaces/{namespace}/imagebuildRuns/{imagebuildRun}").
+	ws.Route(ws.DELETE("/namespaces/{namespace}/imagebuildRuns/{imagebuildRun}").
 		To(handler.deleteImagebuildRun).
 		Doc("Delete an imagebuildRun").
 		Param(ws.PathParameter("namespace", "Namespace of the imagebuildRun")).
