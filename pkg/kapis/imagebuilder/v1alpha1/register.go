@@ -65,7 +65,7 @@ func registerRoutes(ws *restful.WebService, devopsClient devopsClient.Interface,
 		Returns(http.StatusOK, api.StatusOK, shbuild.ClusterBuildStrategy{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsImageBuilder}))
 
-	ws.Route(ws.POST("/namespaces/{namespace}/imagebuilds/{imagebuild}").
+	ws.Route(ws.POST("/namespaces/{namespace}/imagebuilds").
 		To(handler.createImagebuild).
 		Doc("Create an imagebuild").
 		Param(ws.PathParameter("namespace", "Namespace of the imagebuild")).
