@@ -4,7 +4,6 @@
 FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 
-RUN mkdir -p bin/swagger-ui
 COPY apiserver .
 COPY /home/jenkins/go/pkg/mod/github.com/swagger-api/swagger-ui/dist bin/swagger-ui/dist
 
