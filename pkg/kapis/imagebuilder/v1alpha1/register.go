@@ -105,19 +105,20 @@ func registerRoutes(ws *restful.WebService, devopsClient devopsClient.Interface,
 		Returns(http.StatusCreated, api.StatusOK, shbuild.Build{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsImageBuilder}))
 
-	ws.Route(ws.POST("/namespaces/{namespace}/imagebuildRuns/{imagebuildRun}").
+	ws.Route(ws.POST("/namespaces/{namespace}/imagebuilds/{imagebuild}/imagebuildRuns/{imagebuildRun}").
 		To(handler.createImagebuildRun).
 		Doc("Create an imagebuildRun").
 		Param(ws.PathParameter("namespace", "Namespace of the imagebuildRun")).
-		Param(ws.PathParameter("imagebuildRun", "Name of the imagebuildRun for imagebuild")).
-		Param(ws.QueryParameter("imagebuild", "Name of Build for the buildRun")).
+		Param(ws.PathParameter("imagebuild", "Name of the imagebuildRun")).
+		Param(ws.PathParameter("imagebuildRun", "Name of imagebuild for the imagebuildRun")).
 		Returns(http.StatusCreated, api.StatusOK, shbuild.BuildRun{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsImageBuilder}))
 
-	ws.Route(ws.GET("/namespace/{namespace}/imagebuildRuns").
+	ws.Route(ws.GET("/namespace/{namespace}/imagebuilds/{imagebuild}/imagebuildRuns").
 		To(handler.listImagebuildRuns).
-		Doc("Get all imagebuildRuns").
+		Doc("Get all imagebuildRuns of the imagebuild").
 		Param(ws.PathParameter("namespace", "Namespace of imagebuildRuns")).
+		Param(ws.PathParameter("imagebuild", "Imagebuild of imagebuildRuns")).
 		Returns(http.StatusOK, api.StatusOK, shbuild.BuildRunList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsImageBuilder}))
 
