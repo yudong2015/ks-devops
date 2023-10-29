@@ -5,7 +5,7 @@ FROM gcr.io/distroless/static:nonroot
 WORKDIR /
 
 COPY apiserver .
-COPY bin/swagger-ui/dist bin/swagger-ui/dist
+COPY swagger-ui/dist bin/swagger-ui/dist
 
 USER nonroot:nonroot
 
