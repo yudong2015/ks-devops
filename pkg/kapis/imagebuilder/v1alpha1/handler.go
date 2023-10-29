@@ -99,7 +99,11 @@ func (h *apiHandler) createImagebuild(request *restful.Request, response *restfu
 		return
 	}
 
+	if build.Annotations == nil {
+		build.Annotations = map[string]string{}
+	}
 	build.Annotations[shbuild.AnnotationBuildRunDeletion] = "false"
+
 	if err := h.client.Create(context.Background(), &build); err != nil {
 		kapis.HandleError(request, response, err)
 		return
@@ -208,7 +212,12 @@ func (h *apiHandler) createImagebuildRun(request *restful.Request, response *res
 	}
 	run.SetNamespace(namespace)
 	run.SetName(imagebuildRun)
+
+	if run.Labels == nil {
+		run.Labels = map[string]string{}
+	}
 	run.Labels[shbuild.LabelBuild] = imagebuild
+
 	if err := h.client.Create(context.Background(), run); err != nil {
 		kapis.HandleError(request, response, err)
 		return
