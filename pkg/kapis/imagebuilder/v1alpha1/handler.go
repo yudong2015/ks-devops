@@ -33,6 +33,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const LanguageLabelKey = "language"
+
 // apiHandlerOption holds some useful tools for API handler.
 type apiHandlerOption struct {
 	devopsClient devopsClient.Interface
@@ -50,15 +52,17 @@ func newAPIHandler(o apiHandlerOption) *apiHandler {
 }
 
 func (h *apiHandler) listImagebuildStrategies(request *restful.Request, response *restful.Response) {
-	queryParam := query.ParseQueryParameter(request)
-
+	language := request.QueryParameter("language")
+	opt := client.MatchingLabels{
+		LanguageLabelKey: language,
+	}
 	strategyList := &shbuild.ClusterBuildStrategyList{}
-
-	if err := h.client.List(context.Background(), strategyList); err != nil {
+	if err := h.client.List(context.Background(), strategyList, opt); err != nil {
 		kapis.HandleError(request, response, err)
 		return
 	}
 
+	queryParam := query.ParseQueryParameter(request)
 	apiResult := devopsResource.DefaultList(toBuildStrategyObjects(strategyList.Items),
 		queryParam,
 		devopsResource.DefaultCompare(),
