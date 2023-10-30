@@ -238,7 +238,6 @@ func (h *apiHandler) listImagebuildRuns(request *restful.Request, response *rest
 	})
 
 	buildRunList := &shbuild.BuildRunList{}
-	// fetch PipelineRuns
 	if err := h.client.List(context.Background(), buildRunList, opts...); err != nil {
 		kapis.HandleError(request, response, err)
 		return

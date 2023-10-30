@@ -114,7 +114,7 @@ func registerRoutes(ws *restful.WebService, devopsClient devopsClient.Interface,
 		Returns(http.StatusCreated, api.StatusOK, shbuild.BuildRun{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsImageBuilder}))
 
-	ws.Route(ws.GET("/namespace/{namespace}/imagebuilds/{imagebuild}/imagebuildRuns").
+	ws.Route(ws.GET("/namespaces/{namespace}/imagebuilds/{imagebuild}/imagebuildRuns").
 		To(handler.listImagebuildRuns).
 		Doc("Get all imagebuildRuns of the imagebuild").
 		Param(ws.PathParameter("namespace", "Namespace of imagebuildRuns")).
@@ -122,7 +122,7 @@ func registerRoutes(ws *restful.WebService, devopsClient devopsClient.Interface,
 		Returns(http.StatusOK, api.StatusOK, shbuild.BuildRunList{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsImageBuilder}))
 
-	ws.Route(ws.GET("/namespace/{namespace}/imagebuildRuns/{imagebuildRun}").
+	ws.Route(ws.GET("/namespaces/{namespace}/imagebuildRuns/{imagebuildRun}").
 		To(handler.getImagebuildRun).
 		Doc("Get an imagebuildRun").
 		Param(ws.PathParameter("namespace", "Namespace of imagebuildRun")).
