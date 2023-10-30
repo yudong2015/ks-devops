@@ -195,7 +195,6 @@ func (h *apiHandler) deleteImagebuild(request *restful.Request, response *restfu
 func (h *apiHandler) createImagebuildRun(request *restful.Request, response *restful.Response) {
 	namespace := request.PathParameter("namespace")
 	imagebuild := request.PathParameter("imagebuild")
-	imagebuildRun := request.PathParameter("imagebuildRun")
 
 	// validate the imagebuild
 	if err := h.client.Get(context.Background(), client.ObjectKey{Namespace: namespace, Name: imagebuild}, &shbuild.Build{}); err != nil {
@@ -211,7 +210,7 @@ func (h *apiHandler) createImagebuildRun(request *restful.Request, response *res
 		},
 	}
 	run.SetNamespace(namespace)
-	run.SetName(imagebuildRun)
+	run.SetGenerateName(imagebuild + "-")
 
 	if run.Labels == nil {
 		run.Labels = map[string]string{}

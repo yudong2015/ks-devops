@@ -105,12 +105,11 @@ func registerRoutes(ws *restful.WebService, devopsClient devopsClient.Interface,
 		Returns(http.StatusCreated, api.StatusOK, shbuild.Build{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsImageBuilder}))
 
-	ws.Route(ws.POST("/namespaces/{namespace}/imagebuilds/{imagebuild}/imagebuildRuns/{imagebuildRun}").
+	ws.Route(ws.POST("/namespaces/{namespace}/imagebuilds/{imagebuild}/imagebuildRuns").
 		To(handler.createImagebuildRun).
 		Doc("Create an imagebuildRun").
 		Param(ws.PathParameter("namespace", "Namespace of the imagebuildRun")).
 		Param(ws.PathParameter("imagebuild", "Name of the imagebuildRun")).
-		Param(ws.PathParameter("imagebuildRun", "Name of imagebuild for the imagebuildRun")).
 		Returns(http.StatusCreated, api.StatusOK, shbuild.BuildRun{}).
 		Metadata(restfulspec.KeyOpenAPITags, []string{constants.DevOpsImageBuilder}))
 
