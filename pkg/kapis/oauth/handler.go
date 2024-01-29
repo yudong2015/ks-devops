@@ -18,7 +18,9 @@ package oauth
 
 import (
 	"fmt"
+	"k8s.io/klog/v2"
 	"kubesphere.io/devops/pkg/kapis"
+	"time"
 
 	"github.com/emicklei/go-restful"
 
@@ -83,6 +85,7 @@ func (h *handler) TokenReview(req *restful.Request, resp *restful.Response) {
 
 	authenticated, err := h.tokenOperator.Verify(tokenReview.Spec.Token)
 	if err != nil {
+		klog.Errorf("authenticate failed, time now: %s, token: %s", time.Now().Unix(), tokenReview.Spec.Token)
 		kapis.HandleInternalError(resp, req, err)
 		return
 	}
