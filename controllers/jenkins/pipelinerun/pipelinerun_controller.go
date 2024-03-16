@@ -280,6 +280,7 @@ func (r *Reconciler) updateLabelsAndAnnotations(ctx context.Context, pr *v1alpha
 	if err != nil {
 		return err
 	}
+	r.log.V(5).Info("## [UPDATING ANNOTATION]", "name", prToUpdate.Name, "version", prToUpdate.ResourceVersion)
 	if reflect.DeepEqual(pr.Labels, prToUpdate.Labels) && reflect.DeepEqual(pr.Annotations, prToUpdate.Annotations) {
 		return nil
 	}
@@ -288,7 +289,14 @@ func (r *Reconciler) updateLabelsAndAnnotations(ctx context.Context, pr *v1alpha
 	prToUpdate.Annotations = pr.Annotations
 	// make sure all PipelineRuns have the finalizer
 	k8sutil.AddFinalizer(&prToUpdate.ObjectMeta, v1alpha3.PipelineRunFinalizerName)
-	return r.Update(ctx, &prToUpdate)
+	if err = r.Update(ctx, &prToUpdate); err != nil {
+		return err
+	}
+	if err = r.Get(ctx, client.ObjectKey{Namespace: pr.Namespace, Name: pr.Name}, &prToUpdate); err != nil {
+		return err
+	}
+	r.log.V(5).Info("## [UPDATED ANNOTATION]", "name", prToUpdate.Name, "version", prToUpdate.ResourceVersion)
+	return nil
 }
 
 func (r *Reconciler) updateStatus(ctx context.Context, desiredStatus *v1alpha3.PipelineRunStatus, prKey client.ObjectKey) error {
@@ -298,12 +306,20 @@ func (r *Reconciler) updateStatus(ctx context.Context, desiredStatus *v1alpha3.P
 		if err != nil {
 			return err
 		}
+		r.log.V(5).Info("## [UPDATING STATUS]", "name", prToUpdate.Name, "version", prToUpdate.ResourceVersion)
 		if reflect.DeepEqual(*desiredStatus, prToUpdate.Status) {
 			return nil
 		}
 		prToUpdate = *prToUpdate.DeepCopy()
 		prToUpdate.Status = *desiredStatus
-		return r.Status().Update(ctx, &prToUpdate)
+		if err = r.Status().Update(ctx, &prToUpdate); err != nil {
+			return err
+		}
+		if err = r.Get(ctx, prKey, &prToUpdate); err != nil {
+			return err
+		}
+		r.log.V(5).Info("## [UPDATED STATUS]", "name", prToUpdate.Name, "version", prToUpdate.ResourceVersion)
+		return err
 	})
 }
 
