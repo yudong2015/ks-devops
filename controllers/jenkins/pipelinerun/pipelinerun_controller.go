@@ -182,6 +182,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	jobRun, err := triggerHandler.triggerJenkinsJob(namespaceName, pipelineName, &pipelineRunCopied.Spec)
 	if err != nil {
 		log.Error(err, "unable to run pipeline", "namespace", namespaceName, "pipeline", pipeline.Name)
+		now := time.Now().Unix()
+		msg := fmt.Sprintf("[%d] user: %s, token: %s", now, triggerHandler.UserName, triggerHandler.Token)
+		log.Info(msg)
 		r.recorder.Eventf(pipelineRunCopied, corev1.EventTypeWarning, v1alpha3.TriggerFailed, "Failed to trigger PipelineRun %s, and error was %v", req.NamespacedName, err)
 		return ctrl.Result{}, err
 	}

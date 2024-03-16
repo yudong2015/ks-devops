@@ -204,6 +204,8 @@ func Run(s *options.DevOpsControllerManagerOptions, stopCh <-chan struct{}) erro
 		return err
 	}
 
+	klog.Infof("##pw: %s, js: %s", s.JenkinsOptions.Password, s.JWTOptions.Secret)
+
 	// Start cache data after all informer is registered
 	klog.V(0).Info("Starting cache resource from apiserver...")
 	informerFactory.Start(stopCh)
