@@ -96,5 +96,7 @@ func Run(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 		return nil
 	}
 
+	klog.Infof("##js: %s, ajs: %s", s.JWTSecret, s.AuthenticationOptions.JwtSecret)
+
 	return apiserver.Run(stopCh)
 }

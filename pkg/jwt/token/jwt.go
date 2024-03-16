@@ -93,6 +93,8 @@ func (s *jwtTokenIssuer) Verify(tokenString string) (user.Info, TokenType, error
 	// verify token signature and expiration time
 	_, err := jwt.ParseWithClaims(tokenString, clm, s.keyFunc)
 	if err != nil {
+		now := time.Now().Unix()
+		klog.Errorf("[%d]verify error with token: %s, clm: %+v, js: %s", now, tokenString, clm, string(s.secret))
 		klog.V(4).Info(err)
 		return nil, "", err
 	}
