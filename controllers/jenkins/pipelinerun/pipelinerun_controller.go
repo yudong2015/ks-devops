@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"kubesphere.io/devops/pkg/utils/k8sutil"
 	"reflect"
 	"time"
 
@@ -34,11 +33,13 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	"kubesphere.io/devops/pkg/api/devops/v1alpha3"
 	devopsClient "kubesphere.io/devops/pkg/client/devops"
 	"kubesphere.io/devops/pkg/jwt/token"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"kubesphere.io/devops/pkg/utils/k8sutil"
 )
 
 // tokenExpireIn indicates that the temporary token issued by controller will be expired in some time.
@@ -70,6 +71,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err = r.Client.Get(ctx, req.NamespacedName, pipelineRun); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+	log.V(5).Info("## reconcile pipelinerun","resource version", pipelineRun.GetResourceVersion())
 
 	jHandler := &jenkinsHandler{&r.JenkinsCore}
 
@@ -129,14 +131,17 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			pbApplier := pipelineBuildApplier{pipelineBuild}
 			pbApplier.apply(status)
 
+		    log.V(5).Info("## [RUNNING] update status..","resource version", pipelineRunCopied.ResourceVersion)
 			// Because the status is a subresource of PipelineRun, we have to update status separately.
 			// See also: https://book-v1.book.kubebuilder.io/basics/status_subresource.html
 			if err := r.updateStatus(ctx, status, req.NamespacedName); err != nil {
 				log.Error(err, "unable to update PipelineRun status.")
 				return ctrl.Result{}, err
 			}
+			log.V(5).Info("## [RUNNING] updated status", "status", fmt.Sprintf("%+v", status))
 		}
 
+		log.V(5).Info("## [RUNNING] get node details ..")
 		nodeDetails, err := jHandler.getPipelineNodeDetails(pipelineName, namespaceName, pipelineRunCopied)
 		if err != nil {
 			log.Error(err, "unable to get PipelineRun nodes detail")
@@ -158,11 +163,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		pipelineRunCopied.Annotations[v1alpha3.JenkinsPipelineRunStatusAnnoKey] = string(runResultJSON)
 		pipelineRunCopied.Annotations[v1alpha3.JenkinsPipelineRunStagesStatusAnnoKey] = string(nodeDetailsJSON)
 
+		log.V(5).Info("## [RUNNING] update annotations..", "annotations", fmt.Sprintf("%+v", pipelineRunCopied.Annotations), "resource version", pipelineRunCopied.ResourceVersion)
 		// update labels and annotations
 		if err := r.updateLabelsAndAnnotations(ctx, pipelineRunCopied); err != nil {
 			log.Error(err, "unable to update PipelineRun labels and annotations.")
 			return ctrl.Result{}, err
 		}
+		log.V(5).Info("## [RUNNING] updated annotations", "resource version", pipelineRunCopied.ResourceVersion)
 
 		r.recorder.Eventf(pipelineRunCopied, corev1.EventTypeNormal, v1alpha3.Updated, "Updated running data for PipelineRun %s", req.NamespacedName)
 		// until the status is okay
@@ -170,6 +177,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{RequeueAfter: 3 * time.Second}, nil
 	}
 
+	log.V(5).Info("## pipelinerun not start..")
 	// get or create JenkinsCore if the PipelineRun has creator annotation
 	jenkinsCore, err := r.getOrCreateJenkinsCore(pipelineRunCopied.GetAnnotations())
 	if err != nil {
@@ -179,6 +187,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// create trigger handler
 	triggerHandler := &jenkinsHandler{jenkinsCore}
 	// first run
+	log.V(5).Info("## pipelinerun first run, trigger..")
 	jobRun, err := triggerHandler.triggerJenkinsJob(namespaceName, pipelineName, &pipelineRunCopied.Spec)
 	if err != nil {
 		log.Error(err, "unable to run pipeline", "namespace", namespaceName, "pipeline", pipeline.Name)
@@ -189,6 +198,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 	// check if there is still a same PipelineRun
+	log.V(5).Info("## check has same pipelinerun")
 	if exists, err := r.hasSamePipelineRun(jobRun, pipeline); err != nil {
 		return ctrl.Result{}, err
 	} else if exists {
@@ -209,21 +219,25 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	pipelineRunCopied.Annotations[v1alpha3.JenkinsPipelineRunIDAnnoKey] = jobRun.ID
 
+	log.V(5).Info("## [FIRST] update labels and annotations..", "resource version", pipelineRunCopied.ResourceVersion)
 	// the Update method only updates fields except subresource: status
 	if err := r.updateLabelsAndAnnotations(ctx, pipelineRunCopied); err != nil {
 		log.Error(err, "unable to update PipelineRun labels and annotations.")
 		return ctrl.Result{}, err
 	}
+	log.V(5).Info("## [FIRST] after update labels and annotations", "resource version", pipelineRunCopied.ResourceVersion, "annotations", fmt.Sprintf("%+v", pipelineRunCopied.Annotations))
 
 	pipelineRunCopied.Status.StartTime = &v1.Time{Time: time.Now()}
 	pipelineRunCopied.Status.UpdateTime = &v1.Time{Time: time.Now()}
 	// due to the status is subresource of PipelineRun, we have to update status separately.
 	// see also: https://book-v1.book.kubebuilder.io/basics/status_subresource.html
 
+	log.V(5).Info("## [FIRST] update status..","resource version", pipelineRunCopied.ResourceVersion)
 	if err := r.updateStatus(ctx, &pipelineRunCopied.Status, req.NamespacedName); err != nil {
 		log.Error(err, "unable to update PipelineRun status.")
 		return ctrl.Result{}, err
 	}
+	log.V(5).Info("## [FIRST] after update status", "status", fmt.Sprintf("%+v", pipelineRunCopied.Status))
 	r.recorder.Eventf(pipelineRunCopied, corev1.EventTypeNormal, v1alpha3.Started, "Started PipelineRun %s", req.NamespacedName)
 	// requeue after 1 second
 	return ctrl.Result{}, nil
