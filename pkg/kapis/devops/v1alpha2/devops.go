@@ -31,6 +31,7 @@ import (
 	"kubesphere.io/devops/pkg/apiserver/request"
 
 	"github.com/emicklei/go-restful"
+
 	"kubesphere.io/devops/pkg/api/devops/v1alpha3"
 
 	"kubesphere.io/devops/pkg/api"
@@ -836,6 +837,7 @@ func (h *ProjectPipelineHandler) GetNotifyCommit(req *restful.Request, resp *res
 }
 
 func (h *ProjectPipelineHandler) PostNotifyCommit(req *restful.Request, resp *restful.Response) {
+	klog.V(5).Infof("req request: %v", req.Request)
 	res, err := h.devopsOperator.GetNotifyCommit(req.Request)
 	if err != nil {
 		parseErr(err, resp)

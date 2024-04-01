@@ -19,6 +19,8 @@ package jclient
 import (
 	"github.com/jenkins-zh/jenkins-client/pkg/casc"
 	"github.com/jenkins-zh/jenkins-client/pkg/core"
+	"k8s.io/klog/v2"
+
 	"kubesphere.io/devops/pkg/client/devops"
 	"kubesphere.io/devops/pkg/client/devops/jenkins"
 )
@@ -50,6 +52,8 @@ func NewJenkinsClient(options *jenkins.Options) (*JenkinsClient, error) {
 		UserName: options.Username,
 		Token:    options.Password,
 	}
+
+	klog.V(4).Infof("jenkins host: %s, user: %s, token: %s", options.Host, options.Username, options.Password)
 
 	devopsClient, _ := jenkins.NewDevopsClient(options) // For refactor purpose only
 	return &JenkinsClient{
