@@ -705,8 +705,8 @@ func (p *Pipeline) CreateSCMServers() (*devops.SCMServer, error) {
 }
 
 func (p *Pipeline) GetNotifyCommit() ([]byte, error) {
-	klog.V(4).Infof("jenkins path: %s, user: %s, password: %s, httpParameters: %+v",
-		p.Path, p.Jenkins.Requester.BasicAuth.Username, p.Jenkins.Requester.BasicAuth.Password, p.HttpParameters)
+	klog.V(4).Infof("jenkins server: %s, path: %s, user: %s, password: %s, httpParameters: %+v",
+		p.Jenkins.Server, p.Path, p.Jenkins.Requester.BasicAuth.Username, p.Jenkins.Requester.BasicAuth.Password, p.HttpParameters)
 	res, err := p.Jenkins.SendPureRequest(p.Path, p.HttpParameters)
 	if err != nil {
 		klog.Error(err)
